@@ -1,0 +1,46 @@
+/* Dark theme overrides for react-calendar-timeline */
+.react-calendar-timeline .rct-header-root {
+	background-color: #3d3d3d !important;
+}
+
+/* export const colors = {
+	primary: "#d97757",
+	background: "#424b54",
+	textPrimary: "#FFFFFF",
+	textSecondary: "#C2C0B1",
+	secondary: "#a390e4",
+}; */
+
+.react-calendar-timeline .rct-dateHeader,
+.react-calendar-timeline .rct-dateHeader span,
+.react-calendar-timeline .rct-dateHeader div,
+.react-calendar-timeline .rct-dateHeader-primary,
+.react-calendar-timeline .rct-dateHeader-primary span,
+.react-calendar-timeline .rct-dateHeader-primary div {
+	color: #ffffff !important;
+	background-color: #3d3d3d !important;
+}
+
+.react-calendar-timeline .rct-sidebar {
+	background-color: #3d3d3d !important;
+}
+
+.react-calendar-timeline .rct-sidebar-row {
+	background-color: #3d3d3d !important;
+	color: #ffffff !important;
+}
+
+.react-calendar-timeline .rct-horizontal-lines .rct-hl-even,
+.react-calendar-timeline .rct-horizontal-lines .rct-hl-odd {
+	background-color: #3d3d3d !important;
+}
+
+.react-calendar-timeline .rct-vertical-lines .rct-vl {
+	border-left-color: #141414 !important;
+}
+
+/* Booking item text styling */
+.react-calendar-timeline .rct-item-content {
+	color: #000000 !important;
+	font-weight: bold !important;
+}
