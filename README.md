@@ -53,13 +53,9 @@ spring.datasource.url=jdbc:mysql://localhost:3306/hotelpms
 spring.datasource.username=your_username
 spring.datasource.password=your_password
 
-
 🧪 Tesztelés
 # Backend tesztek
 ./mvnw test
-
-# Frontend tesztek
-npm test
 
 🔮 Továbbfejlesztési lehetőségek
 
