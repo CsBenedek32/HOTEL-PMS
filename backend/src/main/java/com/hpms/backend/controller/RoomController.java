@@ -23,6 +23,10 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * REST controller a szobák kezelésére.
+ * CRUD műveleteket, foglalhatósági lekérdezést és szobatükör funkciót biztosít.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/rooms")

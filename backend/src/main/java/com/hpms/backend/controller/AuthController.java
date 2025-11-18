@@ -26,6 +26,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller a felhasználói autentikáció kezelésére.
+ * Login, logout és regisztrációs funkciókat biztosít.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/auth")

@@ -22,6 +22,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller az ÁFA kulcsok kezelésére.
+ * CRUD műveleteket és PDF exportot biztosít az ÁFA kulcsokhoz.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/vats")

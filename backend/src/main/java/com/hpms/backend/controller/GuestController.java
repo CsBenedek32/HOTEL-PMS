@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller a vendégek kezelésére.
+ * CRUD műveleteket biztosít a vendég adatokhoz.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/guests")

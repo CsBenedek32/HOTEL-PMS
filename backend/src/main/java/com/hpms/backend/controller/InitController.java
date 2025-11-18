@@ -18,6 +18,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller az alkalmazás inicializálására.
+ * Biztosítja az enum értékek és kezdeti adatok lekérdezését a frontend számára.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/init")

@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller az épületek kezelésére.
+ * CRUD műveleteket biztosít a szálloda épületeihez.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/buildings")

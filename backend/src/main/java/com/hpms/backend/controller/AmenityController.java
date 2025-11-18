@@ -22,6 +22,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+* REST controller a szállodai szolgáltatások (amenities) kezelésére.
+* CRUD műveleteket és PDF exportot biztosít.
+*/
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/amenities")

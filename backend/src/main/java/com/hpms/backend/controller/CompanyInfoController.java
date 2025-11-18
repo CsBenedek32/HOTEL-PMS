@@ -10,6 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST controller a cég információk kezelésére.
+ * Biztosítja a vállalati adatok lekérdezését és mentését.
+ */
 @RestController
 @RequestMapping("/api/company-info")
 public class CompanyInfoController {

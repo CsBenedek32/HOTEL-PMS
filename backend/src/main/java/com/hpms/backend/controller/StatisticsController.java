@@ -20,6 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
+/**
+ * REST controller a statisztikák lekérdezésére.
+ * Foglalási, vendég, housekeeping, bevételi és kihasználtsági statisztikákat biztosít.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/statistics")

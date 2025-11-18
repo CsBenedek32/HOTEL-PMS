@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller az ágytípusok kezelésére.
+ * CRUD műveleteket biztosít az ágytípusokhoz.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/bed-types")

@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller a szobatípusok kezelésére.
+ * CRUD műveleteket biztosít a különböző szobakategóriákhoz.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/room-types")

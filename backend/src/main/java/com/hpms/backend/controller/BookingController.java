@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller a foglalások kezelésére.
+ * CRUD műveleteket és státusz kezelést biztosít a foglalásokhoz.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/bookings")

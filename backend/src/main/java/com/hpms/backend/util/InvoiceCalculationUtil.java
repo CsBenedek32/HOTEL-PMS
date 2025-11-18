@@ -4,8 +4,17 @@ import com.hpms.backend.model.ServiceModel;
 
 import java.util.List;
 
+/**
+ * Utility osztály számla összegek számításához.
+ * ÁFA-val növelt szolgáltatási díjak összegzését végzi.
+ */
 public class InvoiceCalculationUtil {
 
+    /**
+     * Kiszámítja a szolgáltatások teljes összegét ÁFA-val együtt.
+     * @param serviceModels A szolgáltatások listája
+     * @return A teljes összeg ÁFA-val növelve
+     */
     public static double calculateTotalSum(List<ServiceModel> serviceModels) {
         if (serviceModels == null) {
             return 0.0;

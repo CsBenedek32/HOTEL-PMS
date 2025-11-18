@@ -317,18 +317,17 @@ public class DataInitializer implements CommandLineRunner {
             RoomType deluxeSuite = roomTypes.stream().filter(rt -> rt.getTypeName().equals("Deluxe Suite")).findFirst().get();
             RoomType executiveRoom = roomTypes.stream().filter(rt -> rt.getTypeName().equals("Executive Room")).findFirst().get();
 
-            // Main Building - Standard Rooms (Floor 1-2)
+           
             roomService.createRoom(createRoomRequest("101", 1, RoomStatusEnum.CLEAN, "Standard room with city view", standardRoom.getId(), mainBuilding.getId()));
             roomService.createRoom(createRoomRequest("102", 1, RoomStatusEnum.CLEAN, "Standard room with garden view", standardRoom.getId(), mainBuilding.getId()));
             roomService.createRoom(createRoomRequest("201", 2, RoomStatusEnum.CLEAN, "Standard room on second floor", standardRoom.getId(), mainBuilding.getId()));
             roomService.createRoom(createRoomRequest("202", 2, RoomStatusEnum.CLEAN, "Standard room with balcony", standardRoom.getId(), mainBuilding.getId()));
 
-            // Annex Building - Executive Rooms (Floor 1-2)
+            
             roomService.createRoom(createRoomRequest("A101", 1, RoomStatusEnum.CLEAN, "Executive room with workspace", executiveRoom.getId(), annexBuilding.getId()));
             roomService.createRoom(createRoomRequest("A102", 1, RoomStatusEnum.CLEAN, "Executive room with lounge area", executiveRoom.getId(), annexBuilding.getId()));
             roomService.createRoom(createRoomRequest("A201", 2, RoomStatusEnum.CLEAN, "Executive room premium view", executiveRoom.getId(), annexBuilding.getId()));
 
-            // Suite Building - Deluxe Suites (Floor 1-3)
             roomService.createRoom(createRoomRequest("S101", 1, RoomStatusEnum.OUT_OF_SERVICE, "Deluxe suite with living room", deluxeSuite.getId(), suiteBuilding.getId()));
             roomService.createRoom(createRoomRequest("S201", 2, RoomStatusEnum.DIRTY, "Deluxe suite with terrace", deluxeSuite.getId(), suiteBuilding.getId()));
             roomService.createRoom(createRoomRequest("S301", 3, RoomStatusEnum.DIRTY, "Penthouse deluxe suite", deluxeSuite.getId(), suiteBuilding.getId()));

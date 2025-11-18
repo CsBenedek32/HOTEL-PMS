@@ -27,6 +27,11 @@ public class AmenityService implements IAmenityService {
     private final AmenityRepository amenityRepository;
     private final ModelMapper modelMapper;
 
+    /**
+     * Lekérdezi a szolgáltatásokat opcionális szűrőkkel.
+     * @param filters Szűrési feltételek (null esetén minden szolgáltatást visszaad)
+     * @return A szűrt szolgáltatások listája
+     */
     @Transactional(readOnly = true)
     @Override
     public List<Amenity> getAmenities(AmenityFilter filters) {
@@ -39,6 +44,13 @@ public class AmenityService implements IAmenityService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Új szolgáltatás létrehozása.
+     * Ellenőrzi, hogy a név már létezik-e
+     * @param request A létrehozási kérés adatai
+     * @return A létrehozott szolgáltatás
+     * @throws AlreadyExistsException ha a név már foglalt
+     */
     @Override
     public Amenity createAmenity(CreateAmenityRequest request) {
         Optional<Amenity> existingAmenityOpt = amenityRepository.findByAmenityName(request.getAmenityName());
@@ -53,6 +65,15 @@ public class AmenityService implements IAmenityService {
         return amenityRepository.save(amenity);
     }
 
+    /**
+     * Meglévő szolgáltatás módosítása.
+     * Név egyediség ellenőrzést végez, hogy ne legyen duplikált név más szolgáltatásnál
+     * @param request A módosítási kérés adatai
+     * @param targetId A módosítandó szolgáltatás ID-ja
+     * @return A módosított szolgáltatás
+     * @throws ResourceNotFoundException ha a szolgáltatás nem található
+     * @throws AlreadyExistsException ha az új név már foglalt
+     */
     @Override
     public Amenity updateAmenity(UpdateAmenityRequest request, long targetId) {
         Optional<Amenity> existingAmenityOpt = amenityRepository.findById(targetId);
@@ -71,6 +92,13 @@ public class AmenityService implements IAmenityService {
         return amenityRepository.save(existingAmenity);
     }
 
+    /**
+     * Szolgáltatás törlése.
+     * Csak akkor engedi a törlést, ha nincs hozzárendelve egy szobatípushoz sem.
+     * @param targetId A törlendő szolgáltatás ID-ja
+     * @throws ResourceNotFoundException ha a szolgáltatás nem található
+     * @throws IllegalStateException ha a szolgáltatás használatban van
+     */
     @Override
     public void deleteAmenity(long targetId) {
         amenityRepository.findById(targetId).ifPresentOrElse(

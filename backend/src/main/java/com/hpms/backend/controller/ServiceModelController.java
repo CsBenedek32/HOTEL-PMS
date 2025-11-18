@@ -18,6 +18,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller a szolgáltatási modellek kezelésére.
+ * CRUD műveleteket biztosít a számlázható szolgáltatásokhoz.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/service-models")

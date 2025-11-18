@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller a takarítási feladatok kezelésére.
+ * CRUD műveleteket és státusz kezelést biztosít a housekeeping feladatokhoz.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/housekeeping")

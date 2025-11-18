@@ -22,6 +22,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller a felhasználói szerepkörök kezelésére.
+ * CRUD műveleteket és PDF exportot biztosít a szerepkörökhöz.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/roles")

@@ -22,6 +22,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller a felhasználók kezelésére.
+ * CRUD műveleteket, aktiválást/deaktiválást és PDF exportot biztosít.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/users")

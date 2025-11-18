@@ -21,6 +21,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller a számlák kezelésére.
+ * CRUD műveleteket, szolgáltatások hozzáadását és PDF exportot biztosít.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/invoices")

@@ -7,15 +7,19 @@ import com.hpms.backend.model.Room;
 import java.time.LocalDate;
 import java.util.Collection;
 
+/**
+ * Utility osztály a foglalási konfliktusok ellenőrzésére.
+ * Segít meghatározni, hogy egy szoba elérhető-e egy adott időszakban.
+ */
 public class BookingConflictUtil {
 
     /**
-     * Checks if a room has conflicting bookings for the given date range
-     * @param room The room to check
-     * @param checkInDate The check-in date
-     * @param checkOutDate The check-out date
-     * @param excludeBookingId Optional booking ID to exclude from conflict check (null if not needed)
-     * @return true if there are conflicting bookings, false otherwise
+     * Ellenőrzi, hogy egy szobának vannak-e ütköző foglalásai az adott időszakra.
+     * @param room Az ellenőrizendő szoba
+     * @param checkInDate A bejelentkezés dátuma
+     * @param checkOutDate A kijelentkezés dátuma
+     * @param excludeBookingId Opcionális foglalás ID, amit ki kell zárni az ellenőrzésből (null ha nincs)
+     * @return true ha vannak ütköző foglalások, false egyébként
      */
     public static boolean hasConflictingBookings(Room room, LocalDate checkInDate, LocalDate checkOutDate, Long excludeBookingId) {
         return room.getBookings().stream()
@@ -26,23 +30,23 @@ public class BookingConflictUtil {
     }
 
     /**
-     * Checks if a room has conflicting bookings for the given date range
-     * @param room The room to check
-     * @param checkInDate The check-in date
-     * @param checkOutDate The check-out date
-     * @return true if there are conflicting bookings, false otherwise
+     * Ellenőrzi, hogy egy szobának vannak-e ütköző foglalásai az adott időszakra.
+     * @param room Az ellenőrizendő szoba
+     * @param checkInDate A bejelentkezés dátuma
+     * @param checkOutDate A kijelentkezés dátuma
+     * @return true ha vannak ütköző foglalások, false egyébként
      */
     public static boolean hasConflictingBookings(Room room, LocalDate checkInDate, LocalDate checkOutDate) {
         return hasConflictingBookings(room, checkInDate, checkOutDate, null);
     }
 
     /**
-     * Checks if all rooms are available for the given booking
-     * @param rooms Collection of rooms to check
-     * @param checkInDate The check-in date
-     * @param checkOutDate The check-out date
-     * @param excludeBookingId Optional booking ID to exclude from conflict check
-     * @return true if all rooms are available, false if any room has conflicts
+     * Ellenőrzi, hogy az összes szoba elérhető-e az adott foglaláshoz.
+     * @param rooms Az ellenőrizendő szobák kollekciója
+     * @param checkInDate A bejelentkezés dátuma
+     * @param checkOutDate A kijelentkezés dátuma
+     * @param excludeBookingId Opcionális foglalás ID, amit ki kell zárni az ellenőrzésből
+     * @return true ha minden szoba elérhető, false ha bármelyiknek van konfliktusa
      */
     public static boolean areRoomsAvailable(Collection<Room> rooms, LocalDate checkInDate, LocalDate checkOutDate, Long excludeBookingId) {
         if (rooms == null || rooms.isEmpty()) {
@@ -54,31 +58,31 @@ public class BookingConflictUtil {
     }
 
     /**
-     * Checks if all rooms are available for the given booking
-     * @param rooms Collection of rooms to check
-     * @param checkInDate The check-in date
-     * @param checkOutDate The check-out date
-     * @return true if all rooms are available, false if any room has conflicts
+     * Ellenőrzi, hogy az összes szoba elérhető-e az adott foglaláshoz.
+     * @param rooms Az ellenőrizendő szobák kollekciója
+     * @param checkInDate A bejelentkezés dátuma
+     * @param checkOutDate A kijelentkezés dátuma
+     * @return true ha minden szoba elérhető, false ha bármelyiknek van konfliktusa
      */
     public static boolean areRoomsAvailable(Collection<Room> rooms, LocalDate checkInDate, LocalDate checkOutDate) {
         return areRoomsAvailable(rooms, checkInDate, checkOutDate, null);
     }
 
     /**
-     * Checks if a booking status blocks room availability
-     * @param status The booking status to check
-     * @return true if the status does NOT block availability
+     * Ellenőrzi, hogy egy foglalási státusz blokkolja-e a szoba elérhetőségét.
+     * @param status Az ellenőrizendő foglalási státusz
+     * @return true ha a státusz NEM blokkolja az elérhetőséget
      */
     private static boolean isNonBlockingStatus(BookingStatusEnum status) {
         return status == BookingStatusEnum.CHECKED_OUT || status == BookingStatusEnum.CANCELLED;
     }
 
     /**
-     * Checks if two date ranges overlap
-     * @param booking The existing booking
-     * @param checkInDate The new check-in date
-     * @param checkOutDate The new check-out date
-     * @return true if dates overlap
+     * Ellenőrzi, hogy két dátumtartomány átfed-e egymással.
+     * @param booking A meglévő foglalás
+     * @param checkInDate Az új bejelentkezés dátuma
+     * @param checkOutDate Az új kijelentkezés dátuma
+     * @return true ha a dátumok átfedik egymást
      */
     private static boolean hasDateOverlap(Booking booking, LocalDate checkInDate, LocalDate checkOutDate) {
         return !(booking.getCheckOutDate().compareTo(checkInDate) <= 0 ||

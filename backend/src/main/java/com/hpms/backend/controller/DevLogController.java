@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller a fejlesztői napló kezelésére.
+ * Biztosítja a verzió információk és changelog bejegyzések lekérdezését.
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("${api.prefix}/dev-logs")
