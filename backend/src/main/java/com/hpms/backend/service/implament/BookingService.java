@@ -38,6 +38,11 @@ public class BookingService implements IBookingService {
     private final RoomRepository roomRepository;
     private final ModelMapper modelMapper;
 
+    /**
+     * Lekérdezi a foglalásokat opcionális szűrőkkel.
+     * @param filters Szűrési feltételek (null esetén minden foglalást visszaad)
+     * @return A szűrt foglalások listája
+     */
     @Transactional(readOnly = true)
     @Override
     public List<Booking> getBookings(BookingFilter filters) {
@@ -50,16 +55,27 @@ public class BookingService implements IBookingService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Új foglalás létrehozása.
+     * Ellenőrzi a szobák elérhetőségét és a vendégek létezését.
+     * Ha nincs szoba megadva, a foglalás WAITLISTED státuszba kerül.
+     * @param request A létrehozási kérés adatai
+     * @return A létrehozott foglalás
+     * @throws ResourceNotFoundException ha a szobák vagy vendégek nem találhatók
+     * @throws IllegalStateException ha a szobák nem elérhetők az adott időszakban
+     */
     @Override
     public Booking createBooking(CreateBookingRequest request) {
         Booking booking = new Booking();
 
+        // Szobák validálása és hozzárendelése
         if (request.getRoomIds() != null && !request.getRoomIds().isEmpty()) {
             List<Room> rooms = roomRepository.findAllByIdWithBookings(request.getRoomIds());
             if (rooms.size() != request.getRoomIds().size()) {
                 throw new ResourceNotFoundException(FrontEndCodes.BOOKING_ROOMS_NOT_FOUND.getCode());
             }
 
+            // Ellenőrizzük, hogy a szobák elérhetők-e az adott időszakban
             if (!BookingConflictUtil.areRoomsAvailable(rooms, request.getCheckInDate(), request.getCheckOutDate())) {
                 throw new IllegalStateException(FrontEndCodes.BOOKING_ROOM_UNAVAILABLE.getCode());
             }
@@ -67,9 +83,11 @@ public class BookingService implements IBookingService {
             booking.setRooms(new HashSet<>(rooms));
             booking.setStatus(BookingStatusEnum.RESERVED);
         } else {
+            // Szoba nélküli foglalás várólistára kerül
             booking.setStatus(BookingStatusEnum.WAITLISTED);
         }
 
+        // Alapadatok beállítása
         booking.setCheckInDate(request.getCheckInDate());
         booking.setCheckOutDate(request.getCheckOutDate());
         booking.setName(request.getName());
@@ -77,6 +95,7 @@ public class BookingService implements IBookingService {
         booking.setActive(true);
         booking.setScynStatus(BookingInvoiceEnum.NO_INVOICE);
 
+        // Vendégek hozzárendelése
         if (request.getGuestIds() != null && !request.getGuestIds().isEmpty()) {
             List<Guest> guests = guestRepository.findAllById(request.getGuestIds());
             if (guests.size() != request.getGuestIds().size()) {
@@ -88,22 +107,36 @@ public class BookingService implements IBookingService {
         return bookingRepository.save(booking);
     }
 
+    /**
+     * Meglévő foglalás módosítása.
+     * Validálja a státuszváltást, szoba ütközéseket, és kezeli a számla szinkronizációt.
+     * @param request A módosítási kérés adatai
+     * @param targetId A módosítandó foglalás ID-ja
+     * @return A módosított foglalás
+     * @throws ResourceNotFoundException ha a foglalás nem található
+     * @throws IllegalStateException ha érvénytelen státuszváltás vagy szoba ütközés van
+     */
     @Override
     public Booking updateBooking(UpdateBookingRequest request, long targetId) {
         Booking existingBooking = bookingRepository.findById(targetId)
                 .orElseThrow(() -> new ResourceNotFoundException(FrontEndCodes.BOOKING_NOT_FOUND.getCode()));
 
+        // Validációk
         validateStatusChange(existingBooking, request.getStatus());
         if (request.getStatus() != BookingStatusEnum.WAITLISTED) {
             validateRoomConflicts(request, targetId);
         }
 
+        // Változások detektálása a számla szinkronizációhoz
         boolean datesChanged = areDatesChanging(existingBooking, request);
         boolean roomsChanged = areRoomsChanging(existingBooking, request);
 
+        // Foglalás frissítése
         updateBasicFields(existingBooking, request);
         roomsChanged = updateRoomsAndStatus(existingBooking, request, roomsChanged);
         updateGuests(existingBooking, request);
+
+        // Ha dátum vagy szoba változott, és van számla, jelöljük szinkronizálandónak
         handleInvoiceSync(existingBooking, datesChanged, roomsChanged);
 
         if (request.getStatus() != null) {
@@ -113,12 +146,19 @@ public class BookingService implements IBookingService {
         return bookingRepository.save(existingBooking);
     }
 
+    /**
+     * Ellenőrzi, hogy a státuszváltás engedélyezett-e.
+     */
     private void validateStatusChange(Booking existingBooking, BookingStatusEnum newStatus) {
         if (newStatus != null && !canSetStatus(existingBooking, newStatus)) {
             throw new IllegalStateException(FrontEndCodes.BOOKING_INVALID_STATUS.getCode());
         }
     }
 
+    /**
+     * Ellenőrzi, hogy nincs-e szoba ütközés a módosítás után.
+     * Kihagyja az aktuális foglalást az ütközés-ellenőrzésből.
+     */
     private void validateRoomConflicts(UpdateBookingRequest request, long targetId) {
         List<Long> newRoomIds = request.getRoomIds() != null ? request.getRoomIds() : List.of();
         LocalDate newCheckInDate = request.getCheckInDate();
@@ -129,17 +169,24 @@ public class BookingService implements IBookingService {
             if (newRooms.size() != newRoomIds.size()) {
                 throw new ResourceNotFoundException(FrontEndCodes.BOOKING_ROOMS_NOT_FOUND.getCode());
             }
+            // Az aktuális foglalást kihagyjuk az ütközés-ellenőrzésből (targetId)
             if (!BookingConflictUtil.areRoomsAvailable(newRooms, newCheckInDate, newCheckOutDate, targetId)) {
                 throw new IllegalStateException(FrontEndCodes.BOOKING_ROOM_UNAVAILABLE.getCode());
             }
         }
     }
 
+    /**
+     * Ellenőrzi, hogy változtak-e a dátumok.
+     */
     private boolean areDatesChanging(Booking existingBooking, UpdateBookingRequest request) {
         return !existingBooking.getCheckInDate().equals(request.getCheckInDate()) ||
                 !existingBooking.getCheckOutDate().equals(request.getCheckOutDate());
     }
 
+    /**
+     * Ellenőrzi, hogy változtak-e a szobák.
+     */
     private boolean areRoomsChanging(Booking existingBooking, UpdateBookingRequest request) {
         Set<Long> currentRoomIds = existingBooking.getRooms().stream()
                 .map(Room::getId)
@@ -149,6 +196,9 @@ public class BookingService implements IBookingService {
         return !currentRoomIds.equals(newRoomIds);
     }
 
+    /**
+     * Frissíti az alapmezőket (dátumok, név, leírás).
+     */
     private void updateBasicFields(Booking existingBooking, UpdateBookingRequest request) {
         existingBooking.setCheckInDate(request.getCheckInDate());
         existingBooking.setCheckOutDate(request.getCheckOutDate());
@@ -156,6 +206,10 @@ public class BookingService implements IBookingService {
         existingBooking.setDescription(request.getDescription());
     }
 
+    /**
+     * Frissíti a szobákat és a státuszt a kérés alapján.
+     * @return true ha a szobák változtak
+     */
     private boolean updateRoomsAndStatus(Booking existingBooking, UpdateBookingRequest request, boolean roomsChanged) {
         if (request.getStatus() == BookingStatusEnum.WAITLISTED) {
             return handleWaitlistedStatus(existingBooking, roomsChanged);
@@ -166,6 +220,9 @@ public class BookingService implements IBookingService {
         }
     }
 
+    /**
+     * Kezeli a WAITLISTED státuszba váltást - törli a szobákat.
+     */
     private boolean handleWaitlistedStatus(Booking existingBooking, boolean roomsChanged) {
         if (!existingBooking.getRooms().isEmpty()) {
             roomsChanged = true;
@@ -174,21 +231,31 @@ public class BookingService implements IBookingService {
         return roomsChanged;
     }
 
+    /**
+     * Kezeli az üres szobalistát - WAITLISTED státuszba állítja a foglalást.
+     */
     private boolean handleEmptyRooms(Booking existingBooking) {
         existingBooking.setRooms(new HashSet<>());
         existingBooking.setStatus(BookingStatusEnum.WAITLISTED);
         return true;
     }
 
+    /**
+     * Hozzárendeli az új szobákat és szükség esetén RESERVED státuszba állít.
+     */
     private boolean handleRoomAssignment(Booking existingBooking, UpdateBookingRequest request) {
         List<Room> rooms = roomRepository.findAllById(request.getRoomIds());
         existingBooking.setRooms(new HashSet<>(rooms));
+        // Ha várólistán volt, átállítjuk foglaltra
         if (existingBooking.getStatus() == BookingStatusEnum.WAITLISTED) {
             existingBooking.setStatus(BookingStatusEnum.RESERVED);
         }
         return true;
     }
 
+    /**
+     * Frissíti a vendéglistát.
+     */
     private void updateGuests(Booking existingBooking, UpdateBookingRequest request) {
         if (request.getGuestIds() == null || request.getGuestIds().isEmpty()) {
             existingBooking.setGuests(new HashSet<>());
@@ -201,12 +268,25 @@ public class BookingService implements IBookingService {
         }
     }
 
+    /**
+     * Kezeli a számla szinkronizáció státuszát.
+     * Ha dátum vagy szoba változott és van számla, jelöljük NOT_SYNCED-ként.
+     */
     private void handleInvoiceSync(Booking existingBooking, boolean datesChanged, boolean roomsChanged) {
         if ((datesChanged || roomsChanged) && existingBooking.getInvoice() != null) {
             existingBooking.setScynStatus(BookingInvoiceEnum.NOT_SYNCED);
         }
     }
 
+    /**
+     * Foglalás státuszának frissítése.
+     * Kijelentkezéskor (CHECKED_OUT) a szobákat DIRTY státuszba állítja.
+     * @param targetId A foglalás ID-ja
+     * @param newStatus Az új státusz
+     * @return A frissített foglalás
+     * @throws ResourceNotFoundException ha a foglalás nem található
+     * @throws IllegalStateException ha a státuszváltás nem engedélyezett
+     */
     @Override
     public Booking updateBookingStatus(long targetId, BookingStatusEnum newStatus) {
         Booking existingBooking = bookingRepository.findById(targetId)
@@ -216,6 +296,7 @@ public class BookingService implements IBookingService {
             throw new IllegalStateException(FrontEndCodes.BOOKING_INVALID_STATUS.getCode());
         }
 
+        // Kijelentkezéskor a szobákat piszkosnak jelöljük
         if(newStatus == BookingStatusEnum.CHECKED_OUT){
             existingBooking.getRooms().forEach(room -> {
                 room.setStatus(RoomStatusEnum.DIRTY);
@@ -227,19 +308,33 @@ public class BookingService implements IBookingService {
         return bookingRepository.save(existingBooking);
     }
 
+    /**
+     * Ellenőrzi, hogy a foglalás státusza beállítható-e az új értékre.
+     * Szabályok:
+     * - BLOCKED státuszba nem lehet állítani
+     * - WAITLISTED-be bármikor lehet
+     * - Negatív státuszból (CANCELLED, NO_SHOW, CHECKED_OUT) pozitívba (RESERVED, CHECKED_IN)
+     *   csak akkor lehet, ha a szobák elérhetők
+     * @param booking A foglalás
+     * @param newStatus Az új státusz
+     * @return true ha a státuszváltás engedélyezett
+     */
     @Override
     public Boolean canSetStatus(Booking booking, BookingStatusEnum newStatus) {
         BookingStatusEnum currentStatus = booking.getStatus();
         if (currentStatus == newStatus) {
             return true;
         }
+        // BLOCKED státuszba nem lehet manuálisan állítani
         if (newStatus == BookingStatusEnum.BLOCKED) {
             return false;
         }
+        // WAITLISTED-be bármikor lehet
         if (newStatus == BookingStatusEnum.WAITLISTED) {
             return true;
         }
 
+        // Negatív és pozitív státuszok definiálása
         List<BookingStatusEnum> negativeStatuses = List.of(
                 BookingStatusEnum.CANCELLED,
                 BookingStatusEnum.NO_SHOW,
@@ -253,6 +348,7 @@ public class BookingService implements IBookingService {
         boolean currentIsNegative = negativeStatuses.contains(currentStatus);
         boolean newIsPositive = positiveStatuses.contains(newStatus);
 
+        // Negatívból pozitívba csak akkor lehet, ha a szobák elérhetők
         if (currentIsNegative && newIsPositive) {
             return areRoomsAvailableForBooking(booking);
         }
@@ -260,6 +356,9 @@ public class BookingService implements IBookingService {
         return true;
     }
 
+    /**
+     * Ellenőrzi, hogy a foglalás szobái elérhetők-e.
+     */
     private boolean areRoomsAvailableForBooking(Booking booking) {
         return BookingConflictUtil.areRoomsAvailable(
                 booking.getRooms(),
@@ -269,6 +368,12 @@ public class BookingService implements IBookingService {
         );
     }
 
+    /**
+     * Foglalás törlése (soft delete).
+     * Nem törli fizikailag, csak inaktívra állítja.
+     * @param targetId A törlendő foglalás ID-ja
+     * @throws ResourceNotFoundException ha a foglalás nem található
+     */
     @Override
     public void deleteBooking(long targetId) {
         bookingRepository.findById(targetId).ifPresentOrElse(
@@ -282,6 +387,11 @@ public class BookingService implements IBookingService {
         );
     }
 
+    /**
+     * Foglalás entitás konvertálása DTO-vá.
+     * @param booking A foglalás entitás
+     * @return A foglalás DTO
+     */
     @Override
     @Transactional(readOnly = true)
     public BookingDto convertBookingToDto(Booking booking) {
@@ -294,6 +404,11 @@ public class BookingService implements IBookingService {
         return bookingDto;
     }
 
+    /**
+     * Szűrési predikátum építése a foglalásokhoz.
+     * @param filters A szűrési feltételek
+     * @return A szűrési predikátum
+     */
     @Override
     public Predicate<Booking> buildBookingPredicate(BookingFilter filters) {
         Predicate<Booking> predicate = booking -> true;

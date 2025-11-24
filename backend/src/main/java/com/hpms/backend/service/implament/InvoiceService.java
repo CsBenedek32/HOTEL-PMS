@@ -42,6 +42,12 @@ public class InvoiceService implements IInvoiceService {
     private final IServiceModelService serviceModelService;
     private final IBookingService bookingService;
 
+    /**
+     * Lekérdezi a számlákat opcionális szűrőkkel.
+     * Csak az aktív számlákat adja vissza.
+     * @param filters Szűrési feltételek (null esetén minden aktív számlát visszaad)
+     * @return A szűrt számlák listája
+     */
     @Transactional(readOnly = true)
     @Override
     public List<Invoice> getInvoices(InvoiceFilter filters) {
@@ -57,6 +63,13 @@ public class InvoiceService implements IInvoiceService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Új számla létrehozása.
+     * Ha kezdeti foglalás van megadva, automatikusan szinkronizálja a számlát a foglalással.
+     * @param request A létrehozási kérés adatai
+     * @return A létrehozott számla
+     * @throws ResourceNotFoundException ha a kezdeti foglalás nem található
+     */
     @Override
     public Invoice createInvoice(CreateInvoiceRequest request) {
         if (request.getInitialBookingId() != null) {
@@ -82,6 +95,14 @@ public class InvoiceService implements IInvoiceService {
         return invoice;
     }
 
+    /**
+     * Szinkronizálja a számlát a hozzárendelt foglalásokkal.
+     * Törli a meglévő virtuális szolgáltatásokat és újra létrehozza őket a foglalások
+     * aktuális szobái és dátumai alapján. Ez biztosítja, hogy a számla mindig
+     * a legfrissebb foglalási adatokat tartalmazza.
+     * @param targetId A számla ID-ja
+     * @throws ResourceNotFoundException ha a számla nem található
+     */
     @Override
     public void syncWithBookings(Long targetId) {
         Invoice invoice = invoiceRepository.findById(targetId)
@@ -89,10 +110,17 @@ public class InvoiceService implements IInvoiceService {
 
         List<Booking> bookingsToSync = bookingRepository.findByInvoiceIdAndActive(targetId, true);
 
+        // Meglévő virtuális szolgáltatások törlése a szinkronizálás előtt
+        List<ServiceModel> existingVirtualServices = invoice.getServiceModels().stream()
+                .filter(ServiceModel::getVirtual).toList();
+        invoice.getServiceModels().removeAll(existingVirtualServices);
+
+        // Minden foglaláshoz új virtuális szolgáltatás létrehozása
         for (Booking booking : bookingsToSync) {
             List<Room> rooms = booking.getRooms().stream().toList();
 
             if (!rooms.isEmpty()) {
+                // Virtuális szolgáltatás létrehozása a szobadíjakkal
                 ServiceModel virtualService = serviceModelService.createVirtualServiceModel(
                         rooms,
                         booking.getCheckInDate(),
@@ -102,25 +130,37 @@ public class InvoiceService implements IInvoiceService {
                 invoice.getServiceModels().add(virtualService);
             }
 
+            // Foglalás szinkronizálva státuszba állítása
             booking.setScynStatus(BookingInvoiceEnum.SYNCED);
             bookingRepository.save(booking);
         }
+
+        // Összeg újraszámítása
         invoice.setTotalSum(InvoiceCalculationUtil.calculateTotalSum(invoice.getServiceModels()));
         invoiceRepository.save(invoice);
     }
 
+    /**
+     * Számla alapadatainak és címzett adatainak módosítása.
+     * Rögzíti a fizetés teljesítésének időpontját, ha a státusz FULFILLED-re változik.
+     * @param request A módosítási kérés adatai
+     * @param targetId A módosítandó számla ID-ja
+     * @return A módosított számla
+     * @throws ResourceNotFoundException ha a számla nem található
+     */
     @Override
     public Invoice updateInvoice(UpdateInvoiceRequest request, long targetId) {
         return invoiceRepository.findById(targetId).map(existingInvoice -> {
             existingInvoice.setName(request.getName());
             existingInvoice.setDescription(request.getDescription());
 
-            // Track when payment was fulfilled
+            // Fizetés teljesítésének időpontja rögzítése
             if (request.getPaymentStatus() == PaymentStatusEnum.FULFILLED
                     && existingInvoice.getPaymentStatus() != PaymentStatusEnum.FULFILLED) {
                 existingInvoice.setPaymentFulfilledAt(java.time.LocalDateTime.now());
             }
 
+            // Címzett adatok frissítése
             existingInvoice.setPaymentStatus(request.getPaymentStatus());
             existingInvoice.setRecipientName(request.getRecipientName());
             existingInvoice.setRecipientCompanyName(request.getRecipientCompanyName());
@@ -136,6 +176,14 @@ public class InvoiceService implements IInvoiceService {
         }).orElseThrow(() -> new ResourceNotFoundException(FrontEndCodes.INVOICE_NOT_FOUND.getCode()));
     }
 
+    /**
+     * Számla szolgáltatásainak frissítése.
+     * Újraszámítja a végösszeget a szolgáltatások alapján.
+     * @param targetId A számla ID-ja
+     * @param serviceModelIds A szolgáltatás modellek ID-jainak listája
+     * @return A frissített számla
+     * @throws ResourceNotFoundException ha a számla vagy szolgáltatás nem található
+     */
     @Override
     public Invoice updateInvoiceServices(long targetId, List<Long> serviceModelIds) {
         return invoiceRepository.findById(targetId).map(existingInvoice -> {
@@ -155,17 +203,30 @@ public class InvoiceService implements IInvoiceService {
         }).orElseThrow(() -> new ResourceNotFoundException(FrontEndCodes.INVOICE_NOT_FOUND.getCode()));
     }
 
+    /**
+     * Foglalás hozzáadása a számlához.
+     * Ellenőrzi, hogy a foglalás aktív és nincs már másik számlához rendelve.
+     * Automatikusan szinkronizálja a számlát az új foglalással.
+     * @param targetId A számla ID-ja
+     * @param bookingId A foglalás ID-ja
+     * @return A frissített számla
+     * @throws ResourceNotFoundException ha a számla vagy foglalás nem található
+     * @throws IllegalArgumentException ha a foglalás nem aktív vagy már számlához van rendelve
+     */
     @Override
     public Invoice addInvoiceBookings(long targetId, long bookingId) {
         return invoiceRepository.findById(targetId).map(existingInvoice -> {
             Booking b = bookingRepository.findById(bookingId).orElseThrow(() -> new ResourceNotFoundException(FrontEndCodes.INVOICE_BOOKING_NOT_FOUND.getCode()));
 
+            // Foglalás validálása
             if(!b.isActive()) throw new IllegalArgumentException(FrontEndCodes.BOOKING_NOT_ACTIVE.getCode());
             if(b.getScynStatus() != BookingInvoiceEnum.NO_INVOICE) throw new IllegalArgumentException(FrontEndCodes.INVOICE_BOOKING_IS_TAKEN.getCode());
 
+            // Foglalás hozzárendelése a számlához
             b.setInvoice(existingInvoice);
             bookingRepository.save(b);
 
+            // Virtuális szolgáltatások törlése és újra szinkronizálás
             List<ServiceModel> virtualServices = existingInvoice.getServiceModels().stream()
                     .filter(ServiceModel::getVirtual).toList();
             existingInvoice.getServiceModels().removeAll(virtualServices);
@@ -175,18 +236,31 @@ public class InvoiceService implements IInvoiceService {
         }).orElseThrow(() -> new ResourceNotFoundException(FrontEndCodes.INVOICE_NOT_FOUND.getCode()));
     }
 
+    /**
+     * Foglalás eltávolítása a számlából.
+     * Visszaállítja a foglalás számla státuszát NO_INVOICE-ra.
+     * Automatikusan újraszinkronizálja a számlát a maradék foglalásokkal.
+     * @param targetId A számla ID-ja
+     * @param bookingId A foglalás ID-ja
+     * @return A frissített számla
+     * @throws ResourceNotFoundException ha a számla vagy foglalás nem található
+     * @throws IllegalArgumentException ha a foglalás nem aktív vagy nem ehhez a számlához tartozik
+     */
     @Override
     public Invoice removeInvoiceBookings(long targetId, long bookingId) {
         return invoiceRepository.findById(targetId).map(existingInvoice -> {
             Booking b = bookingRepository.findById(bookingId).orElseThrow(() -> new ResourceNotFoundException(FrontEndCodes.INVOICE_BOOKING_NOT_FOUND.getCode()));
 
+            // Foglalás validálása
             if(!b.isActive()) throw new IllegalArgumentException(FrontEndCodes.BOOKING_NOT_ACTIVE.getCode());
             if(b.getInvoice() != existingInvoice) throw new IllegalArgumentException(FrontEndCodes.INVOICE_BOOKING_MISSMATCH.getCode());
 
+            // Foglalás leválasztása a számláról
             b.setInvoice(null);
             b.setScynStatus(BookingInvoiceEnum.NO_INVOICE);
             bookingRepository.save(b);
 
+            // Virtuális szolgáltatások törlése és újra szinkronizálás
             List<ServiceModel> virtualServices = existingInvoice.getServiceModels().stream()
                     .filter(ServiceModel::getVirtual).toList();
             existingInvoice.getServiceModels().removeAll(virtualServices);
@@ -198,8 +272,12 @@ public class InvoiceService implements IInvoiceService {
         }).orElseThrow(() -> new ResourceNotFoundException(FrontEndCodes.INVOICE_NOT_FOUND.getCode()));
     }
 
-
-
+    /**
+     * Számla törlése (soft delete).
+     * Leválasztja az összes foglalást a számláról és inaktívra állítja.
+     * @param targetId A törlendő számla ID-ja
+     * @throws ResourceNotFoundException ha a számla nem található
+     */
     @Override
     public void deleteInvoice(long targetId) {
         invoiceRepository.findById(targetId).ifPresentOrElse(
@@ -217,6 +295,7 @@ public class InvoiceService implements IInvoiceService {
                 }
         );
     }
+
 
     @Override
     @Transactional(readOnly = true)

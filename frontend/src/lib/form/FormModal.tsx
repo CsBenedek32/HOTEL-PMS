@@ -20,8 +20,10 @@ import ButtonUI from "../ButtonUi";
 import { FormFactory } from "./FormFactory";
 import type { FormErrors, FormValues } from "./types";
 import { hasErrors, validateForm } from "./validation";
+import { useTranslation } from "react-i18next";
 
 export const FormModal = <T extends FormValues = FormValues>() => {
+	const { t } = useTranslation();
 	const open = useAtomValue(formModalOpenAtom);
 	const title = useAtomValue(formModalTitleAtom);
 	const config = useAtomValue(formModalConfigAtom);
@@ -93,12 +95,12 @@ export const FormModal = <T extends FormValues = FormValues>() => {
 							sx={{ minWidth: 120 }}
 							variant="contained"
 						>
-							Cancel
+							{t("common.cancel")}
 						</Button>
 					)}
 					{buttons.save && (
 						<ButtonUI
-							label="Save"
+							label={t("common.save")}
 							sx={{ minWidth: 120 }}
 							onClick={handleSave}
 							color="primary"

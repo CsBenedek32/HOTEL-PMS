@@ -16,6 +16,13 @@ import java.util.Map;
 @Component
 public class JwtAuthEntryPoint implements AuthenticationEntryPoint {
 
+    /**
+     * Autentikációs hiba kezelése.
+     * JSON formátumú hibaüzenetet küld vissza 401-es státuszkóddal.
+     * @param request A HTTP kérés
+     * @param response A HTTP válasz
+     * @param authException Az autentikációs kivétel
+     */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

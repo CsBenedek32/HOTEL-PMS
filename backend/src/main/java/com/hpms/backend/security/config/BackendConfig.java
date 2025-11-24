@@ -29,6 +29,11 @@ import java.util.List;
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
 public class BackendConfig {
+
+    /**
+     * Védett végpontok listája - ezekhez autentikáció szükséges.
+     * Minden más végpont nyilvánosan elérhető (pl. /api/auth/login).
+     */
     private static final List<String> SECURE_URLS =
             List.of(
                     "/api/init/**",
@@ -36,7 +41,6 @@ public class BackendConfig {
                     "/api/bed-types/**",
                     "/api/bookings/**",
                     "/api/buildings/**",
-                    "/api/company-info/**",
                     "/api/dev-logs/**",
                     "/api/guests/**",
                     "/api/guest-tags/**",
@@ -50,30 +54,47 @@ public class BackendConfig {
                     "/api/statistics/**",
                     "/api/vats/**"
             );
+
     private final PMSUserDetailService userDetailsService;
     private final JwtAuthEntryPoint authEntryPoint;
     private final JwtUtils jwtUtils;
 
+    /**
+     * ModelMapper bean az entitás-DTO konverzióhoz.
+     */
     @Bean
     public ModelMapper modelMapper() {
         return new ModelMapper();
     }
 
+    /**
+     * Jelszó titkosító (BCrypt).
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * JWT token szűrő filter.
+     */
     @Bean
     public AuthTokenFilter authTokenFilter() {
         return new AuthTokenFilter(jwtUtils, userDetailsService);
     }
 
+    /**
+     * Autentikáció manager a bejelentkezéshez.
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
+    /**
+     * DAO alapú autentikációs provider.
+     * Összeköti a UserDetailsService-t a jelszó titkosítóval.
+     */
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider() {
         var authProvider = new DaoAuthenticationProvider();
@@ -82,6 +103,10 @@ public class BackendConfig {
         return authProvider;
     }
 
+    /**
+     * Security filter lánc konfigurálása.
+     * Beállítja a CORS-t, CSRF-t, session kezelést és a végpont védelmeket.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults());

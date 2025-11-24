@@ -27,6 +27,11 @@ public class BedTypeService implements IBedTypeService {
     private final BedTypeRepository bedTypeRepository;
     private final ModelMapper modelMapper;
 
+    /**
+     * Lekérdezi az ágytípusokat opcionális szűrőkkel.
+     * @param filters Szűrési feltételek (null esetén minden ágytípust visszaad)
+     * @return A szűrt ágytípusok listája
+     */
     @Transactional(readOnly = true)
     @Override
     public List<BedType> getBedTypes(BedTypeFilter filters) {
@@ -39,6 +44,13 @@ public class BedTypeService implements IBedTypeService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Új ágytípus létrehozása.
+     * Ellenőrzi, hogy a név már létezik-e
+     * @param request A létrehozási kérés adatai
+     * @return A létrehozott ágytípus
+     * @throws AlreadyExistsException ha a név már foglalt
+     */
     @Override
     public BedType createBedType(CreateBedTypeRequest request) {
         Optional<BedType> existingBedTypeOpt = bedTypeRepository.findByBedTypeName(request.getBedTypeName());
@@ -53,6 +65,15 @@ public class BedTypeService implements IBedTypeService {
         return bedTypeRepository.save(bedType);
     }
 
+    /**
+     * Meglévő ágytípus módosítása.
+     * Név egyediség ellenőrzést végez, hogy ne legyen duplikált név más ágytípusnál
+     * @param request A módosítási kérés adatai
+     * @param targetId A módosítandó ágytípus ID-ja
+     * @return A módosított ágytípus
+     * @throws ResourceNotFoundException ha az ágytípus nem található
+     * @throws AlreadyExistsException ha az új név már foglalt
+     */
     @Override
     public BedType updateBedType(UpdateBedTypeRequest request, long targetId) {
         Optional<BedType> existingBedTypeOpt = bedTypeRepository.findById(targetId);
@@ -71,6 +92,13 @@ public class BedTypeService implements IBedTypeService {
         return bedTypeRepository.save(existingBedType);
     }
 
+    /**
+     * Ágytípus törlése.
+     * Csak akkor engedi a törlést, ha nincs hozzárendelve egy szobatípushoz sem.
+     * @param targetId A törlendő ágytípus ID-ja
+     * @throws ResourceNotFoundException ha az ágytípus nem található
+     * @throws IllegalStateException ha az ágytípus használatban van
+     */
     @Override
     public void deleteBedType(long targetId) {
         bedTypeRepository.findById(targetId).ifPresentOrElse(

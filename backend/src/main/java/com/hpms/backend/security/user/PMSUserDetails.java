@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -23,7 +24,12 @@ public class PMSUserDetails implements UserDetails {
     private Collection<GrantedAuthority> authorities;
     private boolean isEnabled;
 
-
+    /**
+     * PMSUserDetails példány létrehozása User entitásból.
+     * A szerepköröket GrantedAuthority objektumokká alakítja "ROLE_" prefixszel.
+     * @param user A User entitás
+     * @return A létrehozott PMSUserDetails
+     */
     public static PMSUserDetails buildUserDetails(User user) {
         List<GrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
