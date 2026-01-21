@@ -49,7 +49,7 @@ public class RoomController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('Admin', 'Data maintainer', 'Housekeeping)")
+    @PreAuthorize("hasAnyRole('Admin', 'Data maintainer', 'Housekeeping')")
     public ResponseEntity<ApiResponse> createRoom(@Valid @RequestBody CreateRoomRequest request) {
         try {
             Room createdRoom = roomService.createRoom(request);
